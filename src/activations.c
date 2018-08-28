@@ -110,8 +110,10 @@ struct activate_params {
 void activate_array_compute(struct activate_params *params, size_t c)
 {
 	int i;
+	size_t cparamsn = c*params->n;
 	for (i = 0; i < params->n; i++) {
-		params->x[c*params->n + i] = activate(params->x[c*params->n + i], params->a);
+		params->x[cparamsn] = activate(params->x[cparamsn], params->a);
+		++cparamsn;
 	}
 }
 
