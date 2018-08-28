@@ -63,7 +63,8 @@ endif
 ifeq ($(NNPACK), 1)
 COMMON+= -DNNPACK
 CFLAGS+= -DNNPACK
-LDFLAGS+= -lnnpack -lpthreadpool
+# for Newest Maratyszcza/NNPACK It need cpuinfo library
+LDFLAGS+= -lnnpack -lpthreadpool -lcpuinfo -lclog
 endif
 
 ifeq ($(ARM_NEON), 1)
