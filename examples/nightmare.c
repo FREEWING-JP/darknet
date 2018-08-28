@@ -318,7 +318,18 @@ void run_nightmare(int argc, char **argv)
     char *imbase = basecfg(input);
 
     set_batch_network(net, 1);
+
+#ifdef NNPACK
+	nnp_initialize();
+	net->threadpool = pthreadpool_create(4);
+#endif
+
+#ifdef NNPACK
+	image im = load_image_thread(input, 0, 0, net->c, net->threadpool);
+#else
     image im = load_image_color(input, 0, 0);
+#endif
+
     if(0){
         float scale = 1;
         if(im.w > 512 || im.h > 512){
@@ -335,7 +346,12 @@ void run_nightmare(int argc, char **argv)
     image update;
     if (reconstruct){
         net->n = max_layer;
+
+#ifdef NNPACK
+		im = letterbox_image_thread(im, net->w, net->h, net->threadpool);
+#else
         im = letterbox_image(im, net->w, net->h);
+#endif
         //resize_network(&net, im.w, im.h);
 
         network_predict(net, im.data);
@@ -410,5 +426,10 @@ void run_nightmare(int argc, char **argv)
         free_image(crop);
         im = resized;
     }
+
+#ifdef NNPACK
+	pthreadpool_destroy(net->threadpool);
+	nnp_deinitialize();
+#endif
 }
 
