@@ -165,7 +165,13 @@ void forward_batchnorm_layer(layer l, network net)
         scal_cpu(l.out_c, .99, l.rolling_variance, 1);
         axpy_cpu(l.out_c, .01, l.variance, 1, l.rolling_variance, 1);
 
-        normalize_cpu(l.output, l.mean, l.variance, l.batch, l.out_c, l.out_h*l.out_w);   
+#ifdef NNPACK
+		struct normalize_params params = { l.output, l.mean, l.variance, l.out_h*l.out_w };
+		pthreadpool_compute_2d(net.threadpool, (pthreadpool_function_2d_t)normalize_cpu_thread,
+			&params, l.batch, l.out_c);
+#else
+        normalize_cpu(l.output, l.mean, l.variance, l.batch, l.out_c, l.out_h*l.out_w);
+#endif
         copy_cpu(l.outputs*l.batch, l.output, 1, l.x_norm, 1);
     } else {
 #ifdef NNPACK
