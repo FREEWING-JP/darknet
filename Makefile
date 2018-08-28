@@ -70,7 +70,13 @@ endif
 ifeq ($(ARM_NEON), 1)
 # blas.c
 COMMON+= -DARM_NEON
-CFLAGS+= -DARM_NEON -mfpu=neon-vfpv4 -funsafe-math-optimizations -ftree-vectorize -mcpu=cortex-a53
+CFLAGS+= -DARM_NEON -ffast-math -ftree-vectorize
+# for Raspberry Pi3 BCM2837 Cortex-A53 32bit
+# https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html
+CFLAGS+= -mfpu=neon-vfpv4 -mtune=cortex-a53 -march=armv7ve
+# for Cortex-A53 64bit
+# https://gcc.gnu.org/onlinedocs/gcc/AArch64-Options.html
+# CFLAGS+= -mfpu=neon-vfpv4 -mtune=cortex-a53 -march=armv8-a
 endif
 
 ifeq ($(STBI_NEON), 1)
