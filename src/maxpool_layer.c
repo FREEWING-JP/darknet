@@ -85,8 +85,8 @@ struct maxpool_params {
 void maxpool_thread(struct maxpool_params *params, size_t b, size_t k)
 {
 	int i, j, m, n;
-	int w_offset = -params->l->pad;
-	int h_offset = -params->l->pad;
+	int w_offset = -params->l->pad/2;
+	int h_offset = -params->l->pad/2;
 	int h = params->l->out_h;
 	int w = params->l->out_w;
 	int c = params->l->c;
