@@ -3,6 +3,9 @@ CUDNN=0
 OPENCV=0
 OPENMP=0
 DEBUG=0
+NNPACK=1
+ARM_NEON=1
+STBI_NEON=1
 
 ARCH= -gencode arch=compute_30,code=sm_30 \
       -gencode arch=compute_35,code=sm_35 \
@@ -57,6 +60,23 @@ CFLAGS+= -DCUDNN
 LDFLAGS+= -lcudnn
 endif
 
+ifeq ($(NNPACK), 1)
+COMMON+= -DNNPACK
+CFLAGS+= -DNNPACK
+LDFLAGS+= -lnnpack -lpthreadpool
+endif
+
+ifeq ($(ARM_NEON), 1)
+# blas.c
+COMMON+= -DARM_NEON
+CFLAGS+= -DARM_NEON -mfpu=neon-vfpv4 -funsafe-math-optimizations -ftree-vectorize -mcpu=cortex-a53
+endif
+
+ifeq ($(STBI_NEON), 1)
+# stb_image.h
+CFLAGS+= -DSTBI_NEON
+endif
+
 OBJ=gemm.o utils.o cuda.o deconvolutional_layer.o convolutional_layer.o list.o image.o activations.o im2col.o col2im.o blas.o crop_layer.o dropout_layer.o maxpool_layer.o softmax_layer.o data.o matrix.o network.o connected_layer.o cost_layer.o parser.o option_list.o detection_layer.o route_layer.o upsample_layer.o box.o normalization_layer.o avgpool_layer.o layer.o local_layer.o shortcut_layer.o logistic_layer.o activation_layer.o rnn_layer.o gru_layer.o crnn_layer.o demo.o batchnorm_layer.o region_layer.o reorg_layer.o tree.o  lstm_layer.o l2norm_layer.o yolo_layer.o iseg_layer.o
 EXECOBJA=captcha.o lsd.o super.o art.o tag.o cifar.o go.o rnn.o segmenter.o regressor.o classifier.o coco.o yolo.o detector.o nightmare.o instance-segmenter.o darknet.o
 ifeq ($(GPU), 1) 
@@ -67,6 +87,7 @@ endif
 EXECOBJ = $(addprefix $(OBJDIR), $(EXECOBJA))
 OBJS = $(addprefix $(OBJDIR), $(OBJ))
 DEPS = $(wildcard src/*.h) Makefile include/darknet.h
+# */
 
 all: obj backup results $(SLIB) $(ALIB) $(EXEC)
 #all: obj  results $(SLIB) $(ALIB) $(EXEC)
@@ -79,7 +100,8 @@ $(ALIB): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
 $(SLIB): $(OBJS)
-	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
+#	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) -shared $^ -o $@
 
 $(OBJDIR)%.o: %.c $(DEPS)
 	$(CC) $(COMMON) $(CFLAGS) -c $< -o $@

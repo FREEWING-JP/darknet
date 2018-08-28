@@ -573,6 +573,12 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
     char buff[256];
     char *input = buff;
     float nms=.45;
+
+#ifdef NNPACK
+	nnp_initialize();
+	net->threadpool = pthreadpool_create(4);
+#endif
+
     while(1){
         if(filename){
             strncpy(input, filename, 256);
@@ -583,12 +589,18 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
             if(!input) return;
             strtok(input, "\n");
         }
+
+#ifdef NNPACK
+		image im = load_image_thread(input, 0, 0, net->c, net->threadpool);
+		image sized = letterbox_image_thread(im, net->w, net->h, net->threadpool);
+#else
         image im = load_image_color(input,0,0);
         image sized = letterbox_image(im, net->w, net->h);
         //image sized = resize_image(im, net->w, net->h);
         //image sized2 = resize_max(im, net->w);
         //image sized = crop_image(sized2, -((net->w - sized2.w)/2), -((net->h - sized2.h)/2), net->w, net->h);
         //resize_network(net, sized.w, sized.h);
+#endif
         layer l = net->layers[net->n-1];
 
 
@@ -621,6 +633,11 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         free_image(sized);
         if (filename) break;
     }
+
+#ifdef NNPACK
+	pthreadpool_destroy(net->threadpool);
+	nnp_deinitialize();
+#endif
 }
 
 /*

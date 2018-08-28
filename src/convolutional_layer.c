@@ -218,7 +218,11 @@ convolutional_layer make_convolutional_layer(int batch, int h, int w, int c, int
     l.output = calloc(l.batch*l.outputs, sizeof(float));
     l.delta  = calloc(l.batch*l.outputs, sizeof(float));
 
+#ifdef NNPACK
+	l.forward = forward_convolutional_layer_nnpack;
+#else
     l.forward = forward_convolutional_layer;
+#endif
     l.backward = backward_convolutional_layer;
     l.update = update_convolutional_layer;
     if(binary){
@@ -441,6 +445,50 @@ void backward_bias(float *bias_updates, float *delta, int batch, int n, int size
         }
     }
 }
+
+#ifdef NNPACK
+void forward_convolutional_layer_nnpack(convolutional_layer l, network net)
+{
+	struct nnp_size input_size = { l.w, l.h };
+	struct nnp_padding input_padding = { l.pad, l.pad, l.pad, l.pad };
+	struct nnp_size kernel_size = { l.size, l.size };
+	struct nnp_size stride = { l.stride, l.stride };
+
+	nnp_convolution_inference(
+		nnp_convolution_algorithm_implicit_gemm,
+		nnp_convolution_transform_strategy_tuple_based,
+		l.c,
+		l.n,
+		input_size,
+		input_padding,
+		kernel_size,
+		stride,
+		net.input,
+		l.weights,
+		NULL,
+		l.output,
+		NULL,
+		NULL,
+		nnp_activation_identity,
+		NULL,
+		net.threadpool,
+		NULL
+	);
+
+	int out_h = convolutional_out_height(l);
+	int out_w = convolutional_out_width(l);
+	int n = out_h*out_w;
+
+	if(l.batch_normalize){
+		forward_batchnorm_layer(l, net);
+	} else {
+		add_bias(l.output, l.biases, l.batch, l.n, out_h*out_w);
+	}
+
+	activate_array_thread(l.output, l.n, n, l.activation, net.threadpool);
+	if(l.binary || l.xnor) swap_binary(&l);
+}
+#endif
 
 void forward_convolutional_layer(convolutional_layer l, network net)
 {

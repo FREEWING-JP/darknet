@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef ARM_NEON
+#include <arm_neon.h>
+#endif
+
 void reorg_cpu(float *x, int w, int h, int c, int batch, int stride, int forward, float *out)
 {
     int b,i,j,k;
@@ -184,7 +188,14 @@ void axpy_cpu(int N, float ALPHA, float *X, int INCX, float *Y, int INCY)
 void scal_cpu(int N, float ALPHA, float *X, int INCX)
 {
     int i;
+#ifdef ARM_NEON
+	float32x4_t alpha = vdupq_n_f32(ALPHA);
+	for (i = 0; i < N; i+=4) {
+		vst1q_f32(X + i*INCX, vmulq_f32(vld1q_f32(X + i*INCX), alpha));
+	}
+#else
     for(i = 0; i < N; ++i) X[i*INCX] *= ALPHA;
+#endif
 }
 
 void fill_cpu(int N, float ALPHA, float *X, int INCX)
