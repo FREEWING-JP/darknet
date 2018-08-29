@@ -848,6 +848,9 @@ void run_detector(int argc, char **argv)
     int height = find_int_arg(argc, argv, "-h", 0);
     int fps = find_int_arg(argc, argv, "-fps", 0);
     //int class = find_int_arg(argc, argv, "-class", 0);
+    width = 640;
+    height = 480;
+    fps = 1;
 
     char *datacfg = argv[3];
     char *cfg = argv[4];

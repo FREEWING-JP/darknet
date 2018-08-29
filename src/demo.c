@@ -226,12 +226,21 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 
     if(!cap) error("Couldn't connect to webcam.\n");
 
+#ifdef NNPACK
+	nnp_initialize();
+	net->threadpool = pthreadpool_create(4);
+#endif
+
     buff[0] = get_image_from_stream(cap);
     buff[1] = copy_image(buff[0]);
     buff[2] = copy_image(buff[0]);
+#ifdef NNPACK
+    buff_letter[0] = letterbox_image_thread(buff[0], net->w, net->h, net->threadpool);
+#else
     buff_letter[0] = letterbox_image(buff[0], net->w, net->h);
-    buff_letter[1] = letterbox_image(buff[0], net->w, net->h);
-    buff_letter[2] = letterbox_image(buff[0], net->w, net->h);
+#endif
+    buff_letter[1] = letterbox_image(buff[1], net->w, net->h);
+    buff_letter[2] = letterbox_image(buff[2], net->w, net->h);
     ipl = cvCreateImage(cvSize(buff[0].w,buff[0].h), IPL_DEPTH_8U, buff[0].c);
 
     int count = 0;
@@ -241,7 +250,11 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
             cvSetWindowProperty("Demo", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
         } else {
             cvMoveWindow("Demo", 0, 0);
-            cvResizeWindow("Demo", 1352, 1013);
+            if (!w || !h) {
+                cvResizeWindow("Demo", 640, 480);
+            } else {
+                cvResizeWindow("Demo", w, h);
+            }
         }
     }
 
@@ -264,6 +277,11 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
         pthread_join(detect_thread, 0);
         ++count;
     }
+
+#ifdef NNPACK
+	pthreadpool_destroy(net->threadpool);
+	nnp_deinitialize();
+#endif
 }
 
 /*
