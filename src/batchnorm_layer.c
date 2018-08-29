@@ -142,12 +142,14 @@ struct normalize_params {
 
 void normalize_cpu_thread(struct normalize_params *params, size_t batch, size_t filters)
 {
+	int index = batch*filters*params->spatial + filters*params->spatial;
 	int i;
 	float div = sqrt(params->variance[filters]) + .000001f;
 
 	for(i = 0; i < params->spatial; i++){
-		int index = batch*filters*params->spatial + filters*params->spatial + i;
+		// int index = index_tmp + i;
 		params->x[index] = (params->x[index] - params->mean[filters])/div;
+		++index;
 	}
 }
 #endif
