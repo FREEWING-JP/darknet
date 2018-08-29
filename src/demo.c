@@ -199,6 +199,11 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 
     srand(2222222);
 
+#ifdef NNPACK
+	nnp_initialize();
+	net->threadpool = pthreadpool_create(4);
+#endif
+
     int i;
     demo_total = size_network(net);
     predictions = calloc(demo_frame, sizeof(float*));
@@ -213,6 +218,14 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
     }else{
         cap = cvCaptureFromCAM(cam_index);
 
+        if (!w || !h) {
+            w = 640;
+            h = 480;
+        }
+        if (!frames) {
+            frames = 1;
+        }
+
         if(w){
             cvSetCaptureProperty(cap, CV_CAP_PROP_FRAME_WIDTH, w);
         }
@@ -226,19 +239,10 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 
     if(!cap) error("Couldn't connect to webcam.\n");
 
-#ifdef NNPACK
-	nnp_initialize();
-	net->threadpool = pthreadpool_create(4);
-#endif
-
     buff[0] = get_image_from_stream(cap);
     buff[1] = copy_image(buff[0]);
     buff[2] = copy_image(buff[0]);
-#ifdef NNPACK
-    buff_letter[0] = letterbox_image_thread(buff[0], net->w, net->h, net->threadpool);
-#else
     buff_letter[0] = letterbox_image(buff[0], net->w, net->h);
-#endif
     buff_letter[1] = letterbox_image(buff[1], net->w, net->h);
     buff_letter[2] = letterbox_image(buff[2], net->w, net->h);
     ipl = cvCreateImage(cvSize(buff[0].w,buff[0].h), IPL_DEPTH_8U, buff[0].c);
