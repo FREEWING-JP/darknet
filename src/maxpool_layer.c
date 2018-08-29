@@ -91,16 +91,29 @@ void maxpool_thread(struct maxpool_params *params, size_t b, size_t k)
 	int w = params->l->out_w;
 	int c = params->l->c;
 
+	int hkcb = h*(k + c*b);
+
 	for(i = 0; i < h; ++i){
+
+		int wihkcb = w*(i + hkcb);
+
 		for(j = 0; j < w; ++j){
-			int out_index = j + w*(i + h*(k + c*b));
+			int out_index = j + wihkcb;
 			float max = -FLT_MAX;
 			int max_i = -1;
 			for(n = 0; n < params->l->size; ++n){
+
+				int cur_h = h_offset + i*params->l->stride + n;
+				int cur_w_tmp = w_offset + j*params->l->stride;
+				int index_tmp = params->l->w*(cur_h + params->l->h*(k + b*params->l->c));
+
 				for(m = 0; m < params->l->size; ++m){
-					int cur_h = h_offset + i*params->l->stride + n;
-					int cur_w = w_offset + j*params->l->stride + m;
-					int index = cur_w + params->l->w*(cur_h + params->l->h*(k + b*params->l->c));
+					// int cur_h = h_offset + i*params->l->stride + n;
+					// int cur_w = w_offset + j*params->l->stride + m;
+					// int index = cur_w + params->l->w*(cur_h + params->l->h*(k + b*params->l->c));
+					int cur_w = cur_w_tmp + m;
+					int index = cur_w + index_tmp;
+
 					int valid = (cur_h >= 0 && cur_h < params->l->h &&
 								 cur_w >= 0 && cur_w < params->l->w);
 					float val = (valid != 0) ? params->net->input[index] : -FLT_MAX;
@@ -164,7 +177,8 @@ void backward_maxpool_layer(const maxpool_layer l, network net)
     int h = l.out_h;
     int w = l.out_w;
     int c = l.c;
-    for(i = 0; i < h*w*c*l.batch; ++i){
+    int hwclbatch = h*w*c*l.batch;
+    for(i = 0; i < hwclbatch; ++i){
         int index = l.indexes[i];
         net.delta[index] += l.delta[i];
     }
