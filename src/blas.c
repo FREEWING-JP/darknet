@@ -191,7 +191,8 @@ void scal_cpu(int N, float ALPHA, float *X, int INCX)
 #ifdef ARM_NEON
 	float32x4_t alpha = vdupq_n_f32(ALPHA);
 	for (i = 0; i < N; i+=4) {
-		vst1q_f32(X + i*INCX, vmulq_f32(vld1q_f32(X + i*INCX), alpha));
+		int iINCX = i*INCX;
+		vst1q_f32(X + iINCX, vmulq_f32(vld1q_f32(X + iINCX), alpha));
 	}
 #else
     for(i = 0; i < N; ++i) X[i*INCX] *= ALPHA;
